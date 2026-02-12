@@ -95,6 +95,7 @@ const (
 	viewList viewState = iota
 	viewDetail
 	viewAdd
+	viewDeleteConfirm
 )
 
 type tickMsg time.Time
@@ -113,7 +114,7 @@ type model struct {
 	width      int
 	height     int
 	textInput  textinput.Model
-	inputStep  int
+	inputStep  int // 0: label, 1: location, 2: confirm
 	newEntry   ClockEntry
 	help       help.Model
 	keys       keyMap
@@ -179,7 +180,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		return m, tick()
 	case tea.KeyMsg:
+		// Handle Delete Confirmation
+		if m.state == viewDeleteConfirm {
+			switch msg.String() {
+			case "y", "Y", "enter":
+				m.clocks = append(m.clocks[:m.cursor], m.clocks[m.cursor+1:]...)
+				if m.cursor >= len(m.clocks) && m.cursor > 0 {
+					m.cursor--
+				}
+				saveConfig(ClockConfig{Clocks: m.clocks})
+				m.state = viewList
+			case "n", "N", "esc":
+				m.state = viewList
+			}
+			return m, nil
+		}
+
+		// Handle Add View
 		if m.state == viewAdd {
+			if m.inputStep == 2 { // Confirmation step
+				switch msg.String() {
+				case "y", "Y", "enter":
+					m.clocks = append(m.clocks, m.newEntry)
+					saveConfig(ClockConfig{Clocks: m.clocks})
+					m.state, m.inputStep = viewList, 0
+					m.textInput.Reset()
+					m.err = nil
+				case "n", "N", "esc":
+					m.state, m.inputStep = viewList, 0
+					m.textInput.Reset()
+				}
+				return m, nil
+			}
+
 			switch {
 			case key.Matches(msg, m.keys.Back):
 				m.state = viewList
@@ -187,24 +220,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case key.Matches(msg, m.keys.Enter):
 				if m.inputStep == 0 {
-					m.newEntry.Label = m.textInput.Value()
+					val := strings.TrimSpace(m.textInput.Value())
+					if val == "" { return m, nil }
+					m.newEntry.Label = val
 					m.inputStep = 1
 					m.textInput.Reset()
 					m.textInput.Placeholder = "Location (e.g. Europe/Istanbul)"
 					return m, nil
-				} else {
-					m.newEntry.Location = m.textInput.Value()
+				} else if m.inputStep == 1 {
+					locStr := strings.TrimSpace(m.textInput.Value())
+					if locStr == "" { return m, nil }
+					m.newEntry.Location = locStr
 					if m.newEntry.Location != "Local" && m.newEntry.Location != "UTC" {
 						_, err := time.LoadLocation(m.newEntry.Location)
 						if err != nil {
-							m.err = fmt.Errorf("Invalid location")
+							m.err = fmt.Errorf("Invalid timezone location")
 							return m, nil
 						}
 					}
-					m.clocks = append(m.clocks, m.newEntry)
-					saveConfig(ClockConfig{Clocks: m.clocks})
-					m.state, m.inputStep = viewList, 0
-					m.textInput.Reset()
+					m.inputStep = 2 // Move to confirmation
+					m.textInput.Blur()
 					m.err = nil
 					return m, nil
 				}
@@ -212,6 +247,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.textInput, cmd = m.textInput.Update(msg)
 			return m, cmd
 		}
+
 		switch {
 		case key.Matches(msg, m.keys.Quit):
 			return m, tea.Quit
@@ -243,15 +279,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.Add):
 			if m.state == viewList {
 				m.state, m.inputStep = viewAdd, 0
+				m.textInput.Reset()
+				m.textInput.Placeholder = "Label (e.g. New York)"
 				m.textInput.Focus()
 			}
 		case key.Matches(msg, m.keys.Delete):
 			if m.state == viewList && len(m.clocks) > 0 {
-				m.clocks = append(m.clocks[:m.cursor], m.clocks[m.cursor+1:]...)
-				if m.cursor >= len(m.clocks) && m.cursor > 0 {
-					m.cursor--
-				}
-				saveConfig(ClockConfig{Clocks: m.clocks})
+				m.state = viewDeleteConfirm
 			}
 		}
 	}
@@ -278,6 +312,12 @@ var (
 	bigTimeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#D4AF37"))
 	
 	errorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).MarginTop(1)
+
+	confirmStyle = lipgloss.NewStyle().
+			Border(lipgloss.DoubleBorder()).
+			BorderForeground(lipgloss.Color("#D4AF37")).
+			Padding(1, 4).
+			MarginTop(1)
 )
 
 func (m model) View() string {
@@ -289,6 +329,8 @@ func (m model) View() string {
 		content = m.detailView()
 	case viewAdd:
 		content = m.addView()
+	case viewDeleteConfirm:
+		content = m.deleteConfirmView()
 	}
 
 	s := lipgloss.JoinVertical(
@@ -359,15 +401,25 @@ func (m model) detailView() string {
 }
 
 func (m model) addView() string {
-	s := "Add New Clock\n\n"
+	var s string
 	if m.inputStep == 0 {
-		s += "Label:\n"
+		s = "STEP 1: ENTER LABEL\n\n" + m.textInput.View()
+	} else if m.inputStep == 1 {
+		s = fmt.Sprintf("LABEL: %s\n\nSTEP 2: ENTER LOCATION\n(e.g. UTC, Local, America/New_York)\n\n%s", 
+			labelStyle.Render(m.newEntry.Label), m.textInput.View())
 	} else {
-		s += "Location (e.g. UTC, Local, Europe/Istanbul):\n"
+		s = confirmStyle.Render(fmt.Sprintf("CONFIRM ADDING CLOCK?\n\nLabel: %s\nLocation: %s\n\n(y)es / (n)o", 
+			labelStyle.Render(m.newEntry.Label), timeStyle.Render(m.newEntry.Location)))
 	}
-	s += "\n" + m.textInput.View()
-	if m.err != nil { s += errorStyle.Render(m.err.Error()) }
+	
+	if m.err != nil { s += errorStyle.Render("\n" + m.err.Error()) }
 	return s
+}
+
+func (m model) deleteConfirmView() string {
+	entry := m.clocks[m.cursor]
+	return confirmStyle.Render(fmt.Sprintf("ARE YOU SURE YOU WANT TO DELETE?\n\n%s (%s)\n\n(y)es / (n)o", 
+		labelStyle.Render(entry.Label), dateStyle.Render(entry.Location)))
 }
 
 func formatOffset(offset int) string {
