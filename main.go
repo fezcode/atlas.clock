@@ -10,6 +10,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -53,6 +54,18 @@ func saveConfig(config ClockConfig) {
 	os.MkdirAll(filepath.Dir(path), 0755)
 	data, _ := json.MarshalIndent(config, "", "  ")
 	os.WriteFile(path, data, 0644)
+}
+
+// --- Timezone Data ---
+
+type zoneItem string
+
+func (z zoneItem) Title() string       { return string(z) }
+func (z zoneItem) Description() string { return "" }
+func (z zoneItem) FilterValue() string { return string(z) }
+
+var ianaTimezones = []string{
+	"Local", "UTC", "Africa/Abidjan", "Africa/Accra", "Africa/Addis_Ababa", "Africa/Algiers", "Africa/Asmara", "Africa/Bamako", "Africa/Bangui", "Africa/Banjul", "Africa/Bissau", "Africa/Blantyre", "Africa/Brazzaville", "Africa/Bujumbura", "Africa/Cairo", "Africa/Casablanca", "Africa/Ceuta", "Africa/Conakry", "Africa/Dakar", "Africa/Dar_es_Salaam", "Africa/Djibouti", "Africa/Douala", "Africa/El_Aaiun", "Africa/Freetown", "Africa/Gaborone", "Africa/Harare", "Africa/Johannesburg", "Africa/Juba", "Africa/Kampala", "Africa/Khartoum", "Africa/Kigali", "Africa/Kinshasa", "Africa/Lagos", "Africa/Libreville", "Africa/Lome", "Africa/Luanda", "Africa/Lubumbashi", "Africa/Lusaka", "Africa/Malabo", "Africa/Maputo", "Africa/Maseru", "Africa/Mbabane", "Africa/Mogadishu", "Africa/Monrovia", "Africa/Nairobi", "Africa/Ndjamena", "Africa/Niamey", "Africa/Nouakchott", "Africa/Ouagadougou", "Africa/Porto-Novo", "Africa/Sao_Tome", "Africa/Tripoli", "Africa/Tunis", "Africa/Windhoek", "America/Adak", "America/Anchorage", "America/Anguilla", "America/Antigua", "America/Araguaina", "America/Argentina/Buenos_Aires", "America/Argentina/Catamarca", "America/Argentina/Cordoba", "America/Argentina/Jujuy", "America/Argentina/La_Rioja", "America/Argentina/Mendoza", "America/Argentina/Rio_Gallegos", "America/Argentina/Salta", "America/Argentina/San_Juan", "America/Argentina/San_Luis", "America/Argentina/Tucuman", "America/Argentina/Ushuaia", "America/Aruba", "America/Asuncion", "America/Atikokan", "America/Bahia", "America/Bahia_Banderas", "America/Barbados", "America/Belem", "America/Belize", "America/Blanc-Sablon", "America/Boa_Vista", "America/Bogota", "America/Boise", "America/Cambridge_Bay", "America/Campo_Grande", "America/Cancun", "America/Caracas", "America/Cayenne", "America/Cayman", "America/Chicago", "America/Chihuahua", "America/Costa_Rica", "America/Creston", "America/Cuiaba", "America/Curacao", "America/Danmarkshavn", "America/Dawson", "America/Dawson_Creek", "America/Denver", "America/Detroit", "America/Dominica", "America/Edmonton", "America/Eirunepe", "America/El_Salvador", "America/Fort_Nelson", "America/Fort_Quebec", "America/Fortaleza", "America/Glace_Bay", "America/Godthab", "America/Goose_Bay", "America/Grand_Turk", "America/Grenada", "America/Guadeloupe", "America/Guatemala", "America/Guayaquil", "America/Guyana", "America/Halifax", "America/Havana", "America/Hermosillo", "America/Indiana/Indianapolis", "America/Indiana/Knox", "America/Indiana/Marengo", "America/Indiana/Petersburg", "America/Indiana/Tell_City", "America/Indiana/Vevay", "America/Indiana/Vincennes", "America/Indiana/Winamac", "America/Inuvik", "America/Iqaluit", "America/Jamaica", "America/Juneau", "America/Kentucky/Louisville", "America/Kentucky/Monticello", "America/Kralendijk", "America/La_Paz", "America/Lima", "America/Los_Angeles", "America/Lower_Princes", "America/Maceio", "America/Managua", "America/Manaus", "America/Marigot", "America/Martinique", "America/Matamoros", "America/Mazatlan", "America/Menominee", "America/Merida", "America/Metlakatla", "America/Mexico_City", "America/Miquelon", "America/Moncton", "America/Monterrey", "America/Montevideo", "America/Montserrat", "America/Nassau", "America/New_York", "America/Nipigon", "America/Nome", "America/Noronha", "America/North_Dakota/Beulah", "America/North_Dakota/Center", "America/North_Dakota/New_Salem", "America/Ojinaga", "America/Panama", "America/Pangnirtung", "America/Paramaribo", "America/Phoenix", "America/Port-au-Prince", "America/Port_of_Spain", "America/Porto_Velho", "America/Puerto_Rico", "America/Punta_Arenas", "America/Rainy_River", "America/Rankin_Inlet", "America/Recife", "America/Regina", "America/Resolute", "America/Rio_Branco", "America/Santarem", "America/Santiago", "America/Santo_Domingo", "America/Sao_Paulo", "America/Scoresbysund", "America/Sitka", "America/St_Barthelemy", "America/St_Johns", "America/St_Kitts", "America/St_Lucia", "America/St_Thomas", "America/St_Vincent", "America/Swift_Current", "America/Tegucigalpa", "America/Thule", "America/Tijuana", "America/Toronto", "America/Tortola", "America/Vancouver", "America/Whitehorse", "America/Winnipeg", "America/Yakutat", "America/Yellowknife", "Antarctica/Casey", "Antarctica/Davis", "Antarctica/DumontDUrville", "Antarctica/Macquarie", "Antarctica/Mawson", "Antarctica/McMurdo", "Antarctica/Palmer", "Antarctica/Rothera", "Antarctica/Syowa", "Antarctica/Troll", "Antarctica/Vostok", "Asia/Almaty", "Asia/Anadyr", "Asia/Aqtau", "Asia/Aqtobe", "Asia/Ashgabat", "Asia/Atyrau", "Asia/Baghdad", "Asia/Bahrain", "Asia/Baku", "Asia/Bangkok", "Asia/Barnaul", "Asia/Beirut", "Asia/Bishkek", "Asia/Brunei", "Asia/Chita", "Asia/Choibalsan", "Asia/Colombo", "Asia/Damascus", "Asia/Dhaka", "Asia/Dili", "Asia/Dubai", "Asia/Dushanbe", "Asia/Famagusta", "Asia/Gaza", "Asia/Hebron", "Asia/Ho_Chi_Minh", "Asia/Hong_Kong", "Asia/Hovd", "Asia/Irkutsk", "Asia/Jakarta", "Asia/Jayapura", "Asia/Jerusalem", "Asia/Kabul", "Asia/Kamchatka", "Asia/Karachi", "Asia/Kathmandu", "Asia/Khandyga", "Asia/Kolkata", "Asia/Krasnoyarsk", "Asia/Kuala_Lumpur", "Asia/Kuching", "Asia/Kuwait", "Asia/Macau", "Asia/Magadan", "Asia/Makassar", "Asia/Manila", "Asia/Muscat", "Asia/Nicosia", "Asia/Novokuznetsk", "Asia/Novosibirsk", "Asia/Omsk", "Asia/Oral", "Asia/Phnom_Penh", "Asia/Pontianak", "Asia/Pyongyang", "Asia/Qatar", "Asia/Qostanay", "Asia/Qyzylorda", "Asia/Riyadh", "Asia/Sakhalin", "Asia/Samarkand", "Asia/Seoul", "Asia/Shanghai", "Asia/Singapore", "Asia/Srednekolymsk", "Asia/Taipei", "Asia/Tashkent", "Asia/Tbilisi", "Asia/Tehran", "Asia/Thimphu", "Asia/Tokyo", "Asia/Tomsk", "Asia/Ulaanbaatar", "Asia/Urumqi", "Asia/Ust-Nera", "Asia/Vientiane", "Asia/Vladivostok", "Asia/Yakutsk", "Asia/Yangon", "Asia/Yekaterinburg", "Asia/Yerevan", "Atlantic/Azores", "Atlantic/Bermuda", "Atlantic/Canary", "Atlantic/Cape_Verde", "Atlantic/Faroe", "Atlantic/Madeira", "Atlantic/Reykjavik", "Atlantic/South_Georgia", "Atlantic/St_Helena", "Atlantic/Stanley", "Australia/Adelaide", "Australia/Brisbane", "Australia/Broken_Hill", "Australia/Currie", "Australia/Darwin", "Australia/Eucla", "Australia/Hobart", "Australia/Lindeman", "Australia/Lord_Howe", "Australia/Melbourne", "Australia/Perth", "Australia/Sydney", "Europe/Amsterdam", "Europe/Andorra", "Europe/Astrakhan", "Europe/Athens", "Europe/Belgrade", "Europe/Berlin", "Europe/Bratislava", "Europe/Brussels", "Europe/Bucharest", "Europe/Budapest", "Europe/Busingen", "Europe/Chisinau", "Europe/Copenhagen", "Europe/Dublin", "Europe/Gibraltar", "Europe/Guernsey", "Europe/Helsinki", "Europe/Isle_of_Man", "Europe/Istanbul", "Europe/Jersey", "Europe/Kaliningrad", "Europe/Kiev", "Europe/Kirov", "Europe/Lisbon", "Europe/Ljubljana", "Europe/London", "Europe/Luxembourg", "Europe/Madrid", "Europe/Malta", "Europe/Mariehamn", "Europe/Minsk", "Europe/Monaco", "Europe/Moscow", "Europe/Oslo", "Europe/Paris", "Europe/Prague", "Europe/Riga", "Europe/Rome", "Europe/Samara", "Europe/San_Marino", "Europe/Sarajevo", "Europe/Saratov", "Europe/Simferopol", "Europe/Skopje", "Europe/Sofia", "Europe/Stockholm", "Europe/Tallinn", "Europe/Tirane", "Europe/Ulyanovsk", "Europe/Uzhgorod", "Europe/Vaduz", "Europe/Vatican", "Europe/Vienna", "Europe/Vilnius", "Europe/Volgograd", "Europe/Warsaw", "Europe/Zagreb", "Europe/Zaporozhye", "Europe/Zurich", "Indian/Antananarivo", "Indian/Chagos", "Indian/Christmas", "Indian/Cocos", "Indian/Comoro", "Indian/Kerguelen", "Indian/Mahe", "Indian/Maldives", "Indian/Mauritius", "Indian/Mayotte", "Indian/Reunion", "Pacific/Apia", "Pacific/Auckland", "Pacific/Bougainville", "Pacific/Chatham", "Pacific/Chuuk", "Pacific/Easter", "Pacific/Efate", "Pacific/Enderbury", "Pacific/Fakaofo", "Pacific/Fiji", "Pacific/Funafuti", "Pacific/Galapagos", "Pacific/Gambier", "Pacific/Guadalcanal", "Pacific/Guam", "Pacific/Honolulu", "Pacific/Kiritimati", "Pacific/Kosrae", "Pacific/Kwajalein", "Pacific/Majuro", "Pacific/Marquesas", "Pacific/Midway", "Pacific/Nauru", "Pacific/Niue", "Pacific/Norfolk", "Pacific/Noumea", "Pacific/Pago_Pago", "Pacific/Palau", "Pacific/Pitcairn", "Pacific/Pohnpei", "Pacific/Port_Moresby", "Pacific/Rarotonga", "Pacific/Saipan", "Pacific/Tahiti", "Pacific/Tarawa", "Pacific/Tongatapu", "Pacific/Wake", "Pacific/Wallis",
 }
 
 // --- Boxy Big Font Renderer ---
@@ -114,6 +127,7 @@ type model struct {
 	width      int
 	height     int
 	textInput  textinput.Model
+	zoneList   list.Model
 	inputStep  int // 0: label, 1: location, 2: confirm
 	newEntry   ClockEntry
 	help       help.Model
@@ -152,7 +166,7 @@ var keys = keyMap{
 	Enter:  key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
 	Add:    key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "add")),
 	Delete: key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "del")),
-	Back:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")), // Removed backspace from here
+	Back:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 	Quit:   key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 }
 
@@ -160,11 +174,23 @@ func initialModel() model {
 	ti := textinput.New()
 	ti.Placeholder = "Label (e.g. New York)"
 	ti.Focus()
+
+	items := make([]list.Item, len(ianaTimezones))
+	for i, tz := range ianaTimezones {
+		items[i] = zoneItem(tz)
+	}
+	zl := list.New(items, list.NewDefaultDelegate(), 0, 0)
+	zl.Title = "Select Timezone"
+	zl.SetShowStatusBar(false)
+	zl.SetFilteringEnabled(true)
+	zl.Styles.Title = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#D4AF37"))
+
 	config := loadConfig()
 	return model{
 		state:     viewList,
 		clocks:    config.Clocks,
 		textInput: ti,
+		zoneList:  zl,
 		help:      help.New(),
 		keys:      keys,
 	}
@@ -177,8 +203,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+		m.zoneList.SetSize(m.width-10, m.height-15)
+
 	case tickMsg:
 		return m, tick()
+
 	case tea.KeyMsg:
 		// Handle Delete Confirmation
 		if m.state == viewDeleteConfirm {
@@ -213,41 +242,43 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			// In input steps, Esc cancels, but Backspace should be passed to textinput
-			if key.Matches(msg, m.keys.Back) {
-				m.state = viewList
-				m.textInput.Reset()
-				return m, nil
-			}
-
-			if key.Matches(msg, m.keys.Enter) {
-				if m.inputStep == 0 {
-					val := strings.TrimSpace(m.textInput.Value())
-					if val == "" { return m, nil }
-					m.newEntry.Label = val
-					m.inputStep = 1
+			if m.inputStep == 0 {
+				if key.Matches(msg, m.keys.Back) {
+					m.state = viewList
 					m.textInput.Reset()
-					m.textInput.Placeholder = "Location (e.g. Europe/Istanbul)"
-					return m, nil
-				} else if m.inputStep == 1 {
-					locStr := strings.TrimSpace(m.textInput.Value())
-					if locStr == "" { return m, nil }
-					m.newEntry.Location = locStr
-					if m.newEntry.Location != "Local" && m.newEntry.Location != "UTC" {
-						_, err := time.LoadLocation(m.newEntry.Location)
-						if err != nil {
-							m.err = fmt.Errorf("Invalid timezone location")
-							return m, nil
-						}
-					}
-					m.inputStep = 2 // Move to confirmation
-					m.textInput.Blur()
-					m.err = nil
 					return m, nil
 				}
+				if key.Matches(msg, m.keys.Enter) {
+					val := strings.TrimSpace(m.textInput.Value())
+					if val != "" {
+						m.newEntry.Label = val
+						m.inputStep = 1
+						return m, nil
+					}
+				}
+				m.textInput, cmd = m.textInput.Update(msg)
+				return m, cmd
 			}
-			m.textInput, cmd = m.textInput.Update(msg)
-			return m, cmd
+
+			if m.inputStep == 1 {
+				if m.zoneList.FilterState() == list.Filtering {
+					m.zoneList, cmd = m.zoneList.Update(msg)
+					return m, cmd
+				}
+				if key.Matches(msg, m.keys.Back) {
+					m.inputStep = 0
+					return m, nil
+				}
+				if key.Matches(msg, m.keys.Enter) {
+					if i, ok := m.zoneList.SelectedItem().(zoneItem); ok {
+						m.newEntry.Location = string(i)
+						m.inputStep = 2
+						return m, nil
+					}
+				}
+				m.zoneList, cmd = m.zoneList.Update(msg)
+				return m, cmd
+			}
 		}
 
 		switch {
@@ -282,7 +313,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == viewList {
 				m.state, m.inputStep = viewAdd, 0
 				m.textInput.Reset()
-				m.textInput.Placeholder = "Label (e.g. New York)"
 				m.textInput.Focus()
 			}
 		case key.Matches(msg, m.keys.Delete):
@@ -339,7 +369,7 @@ func (m model) View() string {
 		lipgloss.Center,
 		titleStyle.Render("ATLAS CLOCK"),
 		content,
-		lipgloss.NewStyle().MarginTop(2).Render(m.help.View(m.keys)),
+		lipgloss.NewStyle().MarginTop(1).Render(m.help.View(m.keys)),
 	)
 
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, s)
@@ -403,19 +433,14 @@ func (m model) detailView() string {
 }
 
 func (m model) addView() string {
-	var s string
 	if m.inputStep == 0 {
-		s = "STEP 1: ENTER LABEL\n\n" + m.textInput.View()
+		return "STEP 1: ENTER LABEL\n\n" + m.textInput.View()
 	} else if m.inputStep == 1 {
-		s = fmt.Sprintf("LABEL: %s\n\nSTEP 2: ENTER LOCATION\n(e.g. UTC, Local, America/New_York)\n\n%s", 
-			labelStyle.Render(m.newEntry.Label), m.textInput.View())
+		return m.zoneList.View()
 	} else {
-		s = confirmStyle.Render(fmt.Sprintf("CONFIRM ADDING CLOCK?\n\nLabel: %s\nLocation: %s\n\n(y)es / (n)o", 
+		return confirmStyle.Render(fmt.Sprintf("CONFIRM ADDING CLOCK?\n\nLabel: %s\nLocation: %s\n\n(y)es / (n)o", 
 			labelStyle.Render(m.newEntry.Label), timeStyle.Render(m.newEntry.Location)))
 	}
-	
-	if m.err != nil { s += errorStyle.Render("\n" + m.err.Error()) }
-	return s
 }
 
 func (m model) deleteConfirmView() string {
