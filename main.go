@@ -324,29 +324,35 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // --- Styling ---
 
 var (
-	titleStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#D4AF37")).MarginBottom(1)
+	amber = lipgloss.Color("#FFB642")
+	onyx  = lipgloss.Color("#050505")
+	grey  = lipgloss.Color("#555555")
+
+	titleStyle = lipgloss.NewStyle().Bold(true).Foreground(amber).MarginBottom(1)
 	
 	clockBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#555555")).
+			BorderForeground(grey).
 			Padding(1, 4).
 			Margin(0, 1)
 
-	selectedClockStyle = clockBoxStyle.Copy().BorderForeground(lipgloss.Color("#D4AF37"))
+	selectedClockStyle = clockBoxStyle.Copy().BorderForeground(amber)
 	
 	timeStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
 	dateStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
-	labelStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#D4AF37"))
+	labelStyle = lipgloss.NewStyle().Bold(true).Foreground(amber)
 	
-	bigTimeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#D4AF37"))
+	bigTimeStyle = lipgloss.NewStyle().Foreground(amber)
 	
 	errorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).MarginTop(1)
 
 	confirmStyle = lipgloss.NewStyle().
 			Border(lipgloss.DoubleBorder()).
-			BorderForeground(lipgloss.Color("#D4AF37")).
+			BorderForeground(amber).
 			Padding(1, 4).
 			MarginTop(1)
+
+	dimStyle = lipgloss.NewStyle().Foreground(grey)
 )
 
 func (m model) View() string {
@@ -373,9 +379,27 @@ func (m model) View() string {
 }
 
 func (m model) listView() string {
+	if len(m.clocks) == 0 {
+		return "No clocks. Press 'a' to add."
+	}
+
+	// Pagination
+	const cols = 3
+	availableHeight := (m.height - 10) / 6 // Each clock box is about 5-6 lines
+	if availableHeight < 1 { availableHeight = 1 }
+	maxVisible := availableHeight * cols
+
+	startIdx := 0
+	if m.cursor >= maxVisible {
+		startIdx = (m.cursor / cols - availableHeight + 1) * cols
+	}
+
 	var rows []string
 	var currentRow []string
-	for i, entry := range m.clocks {
+	
+	visibleCount := 0
+	for i := startIdx; i < len(m.clocks) && visibleCount < maxVisible; i++ {
+		entry := m.clocks[i]
 		t := time.Now()
 		if entry.Location != "Local" && entry.Location != "" {
 			loc, err := time.LoadLocation(entry.Location)
@@ -393,18 +417,27 @@ func (m model) listView() string {
 			style = selectedClockStyle
 		}
 		currentRow = append(currentRow, style.Render(c))
-		if len(currentRow) == 3 {
+		if len(currentRow) == cols {
 			rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Top, currentRow...))
 			currentRow = nil
 		}
+		visibleCount++
 	}
 	if len(currentRow) > 0 {
 		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Top, currentRow...))
 	}
-	if len(rows) == 0 {
-		return "No clocks. Press 'a' to add."
+
+	header := ""
+	if startIdx > 0 {
+		header = dimStyle.Render(fmt.Sprintf("... %d clocks hidden above ...", startIdx)) + "\n"
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, rows...)
+	footer := ""
+	hiddenBelow := len(m.clocks) - (startIdx + visibleCount)
+	if hiddenBelow > 0 {
+		footer = "\n" + dimStyle.Render(fmt.Sprintf("... %d clocks hidden below ...", hiddenBelow))
+	}
+
+	return header + lipgloss.JoinVertical(lipgloss.Left, rows...) + footer
 }
 
 func (m model) detailView() string {
