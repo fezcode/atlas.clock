@@ -492,6 +492,14 @@ func main() {
 		fmt.Printf("atlas.clock v%s\n", Version)
 		return
 	}
+	if len(os.Args) > 1 && (os.Args[1] == "-h" || os.Args[1] == "--help" || os.Args[1] == "help") {
+		fmt.Println("Atlas Clock - High-visibility world clock dashboard.")
+		fmt.Println("\nUsage:")
+		fmt.Println("  atlas.clock        Start the clock dashboard")
+		fmt.Println("  atlas.clock -v     Show version")
+		fmt.Println("  atlas.clock -h     Show this help")
+		return
+	}
 
 	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
