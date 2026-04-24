@@ -2,20 +2,20 @@
 
 ![Banner Image](./banner-image.png)
 
-**atlas.clock** is a fast, interactive terminal user interface (TUI) for tracking world timezones. Part of the **Atlas Suite**, it offers a clean, high-visibility dashboard with millisecond-precision real-time counters and a "local-first" philosophy.
+**atlas.clock** is a fast, interactive terminal user interface (TUI) for tracking world timezones on a phosphor-CRT styled dashboard inspired by 1970s engineering workstations.
 
 ![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
 
 ## ✨ Features
 
-- 🌍 **Multi-Timezone Dashboard:** View multiple world clocks simultaneously in a responsive grid.
-- ⏱️ **High-Precision Detail:** Deep-dive into any clock for a "boxy" ASCII real-time counter with millisecond precision.
-- 🧭 **Easy Discovery:** Browse through a comprehensive list of ~400+ IANA timezones (Europe/Istanbul, America/New_York, etc.).
-- ⌨️ **Vim-style Navigation:** Full 4-way grid navigation using `h/j/k/l` or arrow keys.
-- 🛡️ **Safety First:** Multi-step confirmation for both adding and deleting clocks to prevent accidental changes.
-- 💾 **Local Persistence:** Your dashboard configuration is saved locally in `~/.atlas/clock.json`.
-- 📦 **Zero Dependencies:** Compiles to a single static binary for Windows, Linux, and macOS.
+- 🌍 **Multi-Timezone Grid:** Responsive dashboard of live clocks, each with a day/night glyph and UTC offset.
+- ⏱️ **High-Precision Detail:** Big phosphor digits and millisecond readout for any selected clock.
+- 🧭 **Filterable Zone Picker:** Type to fuzzy-search the ~400+ IANA timezone list during the add flow.
+- ↕️ **Reorder In Place:** `SHIFT+arrow` swaps clocks on the grid and persists immediately.
+- 🛡️ **Confirmation Flows:** Multi-step confirm for both adding and deleting clocks — no accidental edits.
+- 💾 **Local Persistence:** Dashboard state is saved in `~/.atlas/clock.json`.
+- 📦 **Cross-Platform:** Binaries available for Windows, Linux, and macOS (AMD64, ARM64).
 
 ## 🚀 Installation
 
@@ -23,58 +23,54 @@
 ```bash
 git clone https://github.com/fezcode/atlas.clock
 cd atlas.clock
-gobake build
+go build -o atlas.clock .
 ```
-Binaries for all platforms will be generated in the `build/` directory.
 
 ## ⌨️ Usage
 
-Simply run the binary to enter the dashboard:
+Launch the dashboard:
 ```bash
-./atlas.clock
+atlas.clock
 ```
 
 ### Adding a Clock
-1. Press `a` to enter the **Add** flow.
-2. Enter a **Label** for the clock (e.g., "Office", "Home", "Server").
-3. Scroll through the **Timezone List** and press `Enter` to select.
-4. Confirm the addition by pressing `y`.
+1. Press `a`.
+2. Type the label (e.g. "Office", "NY Desk").
+3. Press `↵`, then type to filter the zone list (e.g. "tokyo").
+4. `↵` on the zone, `y` to confirm.
 
 ### Deleting a Clock
-1. Navigate to the clock you wish to remove.
-2. Press `d`.
-3. Confirm the deletion by pressing `y`.
+1. Navigate to the clock with arrow keys.
+2. Press `d`, then `y` to confirm.
+
+### Reordering
+Hold `SHIFT` with any arrow key to swap the selected clock with its neighbour. Order is saved automatically.
 
 ## 🕹️ Controls
 
 | Key | Action |
 |-----|--------|
-| `↑/↓` or `k/j` | Navigate Up/Down in grid |
-| `←/→` or `h/l` | Navigate Left/Right in grid |
-| `Enter` | Open high-precision detail view |
-| `a` | Add a new world clock |
-| `d` | Delete selected clock (requires confirmation) |
-| `Esc` / `Backspace` | Back to List View / Cancel |
-| `q` or `Ctrl+C` | Quit Atlas Clock |
+| `↑/↓/←/→` or `h/j/k/l` | Navigate grid |
+| `SHIFT+arrow` (or `H/J/K/L`) | Reorder the selected clock |
+| `Enter` | Open detail view |
+| `a` | Add a new clock |
+| `d` | Delete the selected clock (requires `y` to confirm) |
+| `Esc` | Back / cancel |
+| `q` or `Ctrl+C` | Quit |
 
 ## 📂 Storage Location
-
-Your clock configuration is stored locally in your user's home directory:
 
 - **Windows:** `%USERPROFILE%\.atlas\clock.json`
 - **Linux/macOS:** `~/.atlas/clock.json`
 
-## 🏗️ Building
+## 🏗️ Building for all platforms
 
-This project uses **gobake** for orchestration. To build for your current platform or cross-compile for others:
+The project uses **gobake** to generate binaries for all supported platforms:
 
 ```bash
-# Build for all platforms
 gobake build
-
-# Clean build artifacts
-gobake clean
 ```
+Binaries are placed in the `build/` directory.
 
 ## 📄 License
 MIT License - see [LICENSE](LICENSE) for details.
